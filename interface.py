@@ -1,6 +1,7 @@
-mport serial
+import serial
 import tkinter as tk
 
+limite_valeur = 50
 # Initialise la communication avec le port 
 ser = serial.Serial('COM12', 9600)
 
@@ -16,6 +17,10 @@ root = tk.Tk()
 label_distance = tk.Label(root)
 label_distance.pack()
 
+# Création d'un label pour afficher l'alerte
+label_led = tk.Label(root)
+label_led.pack() 
+
 # Boucle principale de l'application
 while True:
     # Lit la distance mesurée du pico
@@ -23,6 +28,12 @@ while True:
 
     # Met à jour le label avec la distance lue
     label_distance.config(text="Distance : " + distance + " cm")
+
+        # Met à jour le label avec l'alerte
+    led_etat = "Pas d'alerte"
+    if int(distance) > limite_valeur:
+        led_etat = "Alerte"
+    label_led.config(text=led_etat)
 
     # Actualise l'interface graphique
     root.update()
