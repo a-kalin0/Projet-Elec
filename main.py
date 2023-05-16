@@ -2,7 +2,9 @@ from machine import Pin, Timer
 import utime
 import time
 import math
- 
+import sys
+import select
+
  
 trigger_pin = Pin(27, Pin.OUT)
 echo_pin = Pin(26, Pin.IN)
@@ -13,7 +15,7 @@ led_green = Pin(16, Pin.OUT)
 limite = 50
 valeur = 1
 
-# Initialisation de la broche pour l'afficheur 7 segments (des dizaines = celui à gauche)
+#Initialisation de la broche pour l'afficheur 7 segments (des dizaines = celui à gauche)
 pins_dizaine = [
     Pin(0, Pin.OUT), #top 
     Pin(1, Pin.OUT), #top right 
@@ -21,11 +23,11 @@ pins_dizaine = [
     Pin(3, Pin.OUT), #bot
     Pin(4, Pin.OUT), #bot left
     Pin(5, Pin.OUT), #top left
-    Pin(6, Pin.OUT), #middle (malheureusement pas dans le circuit ...)
-    Pin(7, Pin.OUT)  #Dot Point 
+    Pin(6, Pin.OUT), #Dot Point 
+    Pin(7, Pin.OUT)  #middle (malheureusement pas dans le circuit ...)
 ]
 
-# Initialisation de la broche pour l'afficheur 7 segments (des Unités = celui à droite)
+#Initialisation de la broche pour l'afficheur 7 segments (des Unités = celui à droite)
 pins_unite = [
     Pin(9, Pin.OUT),  #top 
     Pin(10, Pin.OUT), #top right
@@ -36,7 +38,7 @@ pins_unite = [
     Pin(15, Pin.OUT) #middle
 ]
 
-#common anode 7 segment
+#Common anode 7 segment
 chars_unite = [
     [0, 0, 0, 0, 0, 0, 1], #0
     [1, 0, 0, 1, 1, 1, 1], #1
@@ -63,8 +65,6 @@ chars_dizaine = [
     [0, 0, 0, 0, 1, 0, 1, 1] #9
 ]
 
-
-
 def count(display, number):
     if display == pins_dizaine:
         for i in range(len(pins_dizaine)):
@@ -78,7 +78,7 @@ def clear():
         i.value(1)
     for j in pins_unite:
         j.value(1)
-
+ 
 def check(timer1):
     global valeur
     valeur = max(min(valeur, 999), 0)
@@ -99,9 +99,18 @@ def init_timer():
 
 def init():
     init_timer()
+    
+def led_state(distance, limite):
+    if distance <= limite:
+        led_red.value(0)
+        led_green.value(1)
+    else:
+        led_red.toggle()
+        led_green.value(0)
 
 def main_loop():
     global valeur
+    global limite
     trigger_pin.low()
     utime.sleep_us(2)
     trigger_pin.high()
@@ -116,20 +125,20 @@ def main_loop():
     pulse_duration = pulse_end - pulse_start
     distance = pulse_duration * 17165 / 1000000
     distance = int(round(distance, 0))
-
-    print("Distance: %.2f cm" % distance)
+    print(distance)
+    if select.select([sys.stdin],[],[], 0)[0]:
+        line = sys.stdin.readline().strip()
+        try:
+            limite = int(line)
+        except ValueError:
+            pass
     valeur = distance
-    if distance <= limite:
-        led_red.value(0)
-        led_green.value(1)
-    else:
-        led_red.value(1)
-        led_green.value(0)
+    led_state(distance, limite)
     utime.sleep_ms(500)
-    return distance
 
 
 init()
 while True:
+    utime.sleep_ms(900)
     main_loop()
     clear()
